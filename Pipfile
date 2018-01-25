@@ -1,0 +1,36 @@
+[[source]]
+
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+
+[packages]
+
+attrs = "*"
+click = "*"
+eliot = "*"
+aiohttp = "*"
+jupyter = "*"
+aiohttp-graphql = {git = "https://github.com/graphql-python/aiohttp-graphql"}
+graphene = "*"
+aiohttp-mako = "*"
+
+
+[dev-packages]
+
+bumpversion = "*"
+coverage = "*"
+cryptography = "*"
+"flake8" = "*"
+pytest = "*"
+pytest-runner = "*"
+pyyaml = "*"
+sphinx = "*"
+tox = "*"
+sphinx-autodoc-typehints = "*"
+wheel = "*"
+"fabric3" = "*"
+readme = "*"
+twine = "*"
+yapf = "*"
+eliot-tree = "*"

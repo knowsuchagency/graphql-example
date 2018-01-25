@@ -1,0 +1,8 @@
+{"task_level": [1], "https_enable": false, "from_ip": "127.0.0.1", "method": "GET", "timestamp": 1516902483.600916, "task_uuid": "ae50d25e-c6d6-404f-a724-e9d2fdd9e630", "action_type": "inbound request", "resource": "/", "action_status": "started"}
+{"action_status": "started", "task_uuid": "ae50d25e-c6d6-404f-a724-e9d2fdd9e630", "action_type": "redirect", "to_url": "/greet/you", "task_level": [2, 1], "timestamp": 1516902483.601439}
+{"action_status": "succeeded", "timestamp": 1516902483.602005, "action_type": "redirect", "task_uuid": "ae50d25e-c6d6-404f-a724-e9d2fdd9e630", "task_level": [2, 2]}
+{"action_status": "succeeded", "timestamp": 1516902483.602697, "action_type": "inbound request", "task_uuid": "ae50d25e-c6d6-404f-a724-e9d2fdd9e630", "task_level": [3]}
+{"task_level": [1], "https_enable": false, "from_ip": "127.0.0.1", "method": "GET", "timestamp": 1516902483.611464, "task_uuid": "c58383a1-ad48-413a-a16d-2decb04318ad", "action_type": "inbound request", "resource": "/greet/you", "action_status": "started"}
+{"action_status": "started", "timestamp": 1516902483.611985, "action_type": "sending response", "task_uuid": "c58383a1-ad48-413a-a16d-2decb04318ad", "task_level": [2, 1]}
+{"action_status": "succeeded", "timestamp": 1516902483.612354, "action_type": "sending response", "task_uuid": "c58383a1-ad48-413a-a16d-2decb04318ad", "task_level": [2, 2]}
+{"action_status": "succeeded", "timestamp": 1516902483.614159, "action_type": "inbound request", "task_uuid": "c58383a1-ad48-413a-a16d-2decb04318ad", "task_level": [3]}
