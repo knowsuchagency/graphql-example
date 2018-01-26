@@ -72,3 +72,5 @@ public/
 
 # jupyter cache
 **/.ipynb_checkpoints/
+
+**.sqlite
