@@ -69,3 +69,6 @@ public/
 
 # json logs
 **log.json
+
+# jupyter cache
+**/.ipynb_checkpoints/
