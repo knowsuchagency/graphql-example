@@ -14,6 +14,7 @@ jupyter = "*"
 aiohttp-graphql = {git = "https://github.com/graphql-python/aiohttp-graphql"}
 graphene = "*"
 aiohttp-mako = "*"
+mimesis = "*"
 
 
 [dev-packages]
@@ -25,9 +26,7 @@ cryptography = "*"
 pytest = "*"
 pytest-runner = "*"
 pyyaml = "*"
-sphinx = "*"
 tox = "*"
-sphinx-autodoc-typehints = "*"
 wheel = "*"
 "fabric3" = "*"
 readme = "*"

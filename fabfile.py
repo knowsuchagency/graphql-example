@@ -5,12 +5,6 @@ from fabric.api import *
 
 
 @task
-def test_readme_rst():
-    """Test README.rst to ensure it will render correctly in warehouse."""
-    local('python setup.py check -r -s')
-
-
-@task
 def clean_build():
     """Remove build artifacts."""
     local('rm -fr build/')
@@ -74,70 +68,6 @@ def coverage(open_browser=True):
 
 
 @task
-def docs(open_browser=True):
-    """
-    Generage Sphinx HTML documentation, including API docs.
-
-    Args:
-        open_browser: Open browser automatically after building docs
-    """
-    local('rm -f docs/graphql_example.rst')
-    local('rm -f docs/modules.rst')
-    local('rm -f docs/graphql_example*')
-    local('sphinx-apidoc -o docs/ graphql_example')
-
-    with lcd('docs'):
-        local('make clean')
-        local('make html')
-
-    local('cp -rf docs/_build/html/ public/')
-
-    if true(open_browser):
-        local('open public/index.html')
-
-
-@task
-def publish_docs():
-    """
-    Compile docs and publish to GitHub Pages.
-
-    Logic borrowed from `hugo <https://gohugo.io/tutorials/github-pages-blog/>`
-    """
-    from textwrap import dedent
-
-    with settings(warn_only=True):
-        if local('git diff-index --quiet HEAD --').failed:
-            local('git status')
-            abort('The working directory is dirty. Please commit any pending changes.')
-
-        if local('git show-ref refs/heads/gh-pages').failed:
-            # initialized github pages branch
-            local(dedent("""
-                git checkout --orphan gh-pages
-                git reset --hard
-                git commit --allow-empty -m "Initializing gh-pages branch"
-                git push gh-pages
-                git checkout master
-                """).strip())
-            print('created github pages branch')
-
-    # deleting old publication
-    local('rm -rf public')
-    local('mkdir public')
-    local('git worktree prune')
-    local('rm -rf .git/worktrees/public/')
-    # checkout out gh-pages branch into public
-    local('git worktree add -B gh-pages public gh-pages')
-    # generating docs
-    docs(open_browser=False)
-    # push to github
-    with lcd('public'), settings(warn_only=True):
-        local('git add .')
-        local('git commit -m "Publishing to gh-pages (Fabfile)"')
-        local('git push origin gh-pages')
-
-
-@task
 def dist():
     """Build source and wheel package."""
     clean()
@@ -148,10 +78,8 @@ def dist():
 @task
 def release():
     """Package and upload a release to pypi."""
-    test_readme_rst()
     clean()
     test_all()
-    publish_docs()
     local('python setup.py sdist bdist_wheel')
     local('twine upload dist/*')
 
@@ -192,24 +120,21 @@ def true(arg):
 
 @task
 def prepare_readme():
-    """Convert notebook to RST and write it to the readme."""
-    from nbconvert import RSTExporter
+    """Convert notebook to markdown and write it to the readme."""
+    from nbconvert import MarkdownExporter
     import nbformat
 
     print('reading notebook')
     notebook = nbformat.reads(
         Path('graphql_example/graphql_example.ipynb').read_text(),
-        as_version=4
-    )
+        as_version=4)
 
     print('converting notebook to RST')
-    rst_exporter = RSTExporter()
-    body, *_ = rst_exporter.from_notebook_node(
-        notebook
-    )
+    exporter = MarkdownExporter()
+    body, *_ = exporter.from_notebook_node(notebook)
 
     print('writing to RST to readme')
-    with open('README.rst', 'w') as readme:
+    with open('README.md', 'w') as readme:
         readme.write(body)
 
     print('success')
@@ -223,10 +148,16 @@ def prepare_module():
 
 
 @task
+def prepare_files():
+    """Programmatically update both modules and readme."""
+    prepare_module()
+    prepare_readme()
+
+
+@task
 def publish_to_github():
     """Prepare readme and modules."""
-    prepare_readme()
-    prepare_module()
+    prepare_files
     local('git push')
 
 

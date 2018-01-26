@@ -1,16 +1,13 @@
 
-# coding: utf-8
+# A simple graphql backend implented in aiohttp
 
-# # A simple graphql backend implented in aiohttp
-
-# 1. imports from stdlib, web-framework, and logging framework
-# 2. configure logging
-# 3. initialize web application and route table
-# 4. configure database connection
-
-# In[1]:
+1. imports from stdlib, web-framework, and logging framework
+2. configure logging
+3. initialize web application and route table
+4. configure database connection
 
 
+```python
 from contextlib import contextmanager
 import sqlite3
 import typing as T
@@ -51,15 +48,21 @@ connection = sqlite3.connect(':memory:')
 connection.execute('PRAGMA synchronous = OFF')
 # avoid globals
 app['connection'] = connection
+```
 
 
-# ## Logging shortcuts
-# 
-# Some simple context managers to make logging less verbose
-
-# In[2]:
 
 
+    <sqlite3.Cursor at 0x106230ce0>
+
+
+
+## Logging shortcuts
+
+Some simple context managers to make logging less verbose
+
+
+```python
 @contextmanager
 def log_action(action_type, **kwargs):
     """A simple wrapper over eliot.start_action to make things less verbose."""
@@ -83,31 +86,30 @@ def log_inbound_request(request, **kwargs):
     ) as action:
         
         yield action
+```
+
+## Brief aiohttp route/view example w/eliot logging
+
+Two simple view coroutines decorated with their routes
+
+Note, aiohttp also allows one to add routes and related views without
+the use of decorators as flask does
+
+```python3
+
+app.router.add_route('GET', '/', index)
+# or
+app.router.add_get('/', index)
+
+```
+
+This is arguably better, if only because you could see
+the mapping of all your routes and related views in one
+place without resorting to programmatically iterate through the
+route table's resource map
 
 
-# ## Brief aiohttp route/view example w/eliot logging
-# 
-# Two simple view coroutines decorated with their routes
-# 
-# Note, aiohttp also allows one to add routes and related views without
-# the use of decorators as flask does
-# 
-# ```python3
-# 
-# app.router.add_route('GET', '/', index)
-# # or
-# app.router.add_get('/', index)
-# 
-# ```
-# 
-# This is arguably better, if only because you could see
-# the mapping of all your routes and related views in one
-# place without resorting to programmatically iterate through the
-# route table's resource map
-
-# In[3]:
-
-
+```python
 @routes.get('/')
 async def index(request):
     """Redirect to greet route."""
@@ -133,18 +135,17 @@ async def greet(request):
                 text=f'<html><h2>Hello {name}!</h2><html>',
                 content_type='Content-Type: text/html'
             )
+```
+
+## Domain Model
+
+Aspects of a **library** in terms of:
+* Books
+* Authors
+* Catalogs
 
 
-# ## Domain Model
-# 
-# Aspects of a **library** in terms of:
-# * Books
-# * Authors
-# * Catalogs
-
-# In[4]:
-
-
+```python
 from datetime import date as Date
 from enum import Enum
 import random
@@ -186,15 +187,14 @@ class Catalog:
     floor:  Floor
     books: T.List[Book]
         
+```
+
+## Factory functions
+
+For generating fake data
 
 
-# ## Factory functions
-# 
-# For generating fake data
-
-# In[5]:
-
-
+```python
 def author_factory(**replace):
     kwargs = dict(
         first_name = generate.personal.name(),
@@ -228,13 +228,12 @@ def catalog_factory(**replace):
     kwargs.update(replace)
     
     return Catalog(**kwargs)
+```
+
+## sql
 
 
-# ## sql
-
-# In[6]:
-
-
+```python
 ## create the tables
 
 CREATE_TABLES = """
@@ -268,19 +267,24 @@ CREATE TABLE IF NOT EXISTS catalog_book(
 """
 
 connection.executescript(CREATE_TABLES)
+```
 
 
-# In[7]:
 
 
+    <sqlite3.Cursor at 0x106b81490>
+
+
+
+
+```python
 # seed the db
+```
+
+## graphql schema definition
 
 
-# ## graphql schema definition
-
-# In[8]:
-
-
+```python
 import graphene
 
 class Query(graphene.ObjectType):
@@ -298,28 +302,39 @@ query = '''
 '''
 
 dict(schema.execute(query).data)
+```
 
 
-# ## rest routes/views
-
-# In[9]:
 
 
+    {'hello': 'World'}
+
+
+
+## rest routes/views
+
+
+```python
 ## code
+```
+
+## graphql routes/view
 
 
-# ## graphql routes/view
-
-# In[10]:
-
-
+```python
 gql_view = GraphQLView(schema=schema, graphiql=True)
 app.router.add_route('*', '/graphql', gql_view, name='graphql')
+```
 
 
-# In[11]:
 
 
+    <ResourceRoute [*] <PlainResource 'graphql'  /graphql -> <function AbstractRoute.__init__.<locals>.handler_wrapper at 0x106bf3510>
+
+
+
+
+```python
 # add routes from decorators
 app.router.add_routes(routes)
 
@@ -327,3 +342,4 @@ app.router.add_routes(routes)
 # if __name__ == '__main__':    
 #     web.run_app(app, host='127.0.0.1', port=8080)
 
+```
