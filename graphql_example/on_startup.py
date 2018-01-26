@@ -28,7 +28,7 @@ async def configure_logging(app):
 
 async def configure_database(app):
     # configure database
-    connection = sqlite3.connect('library.sqlite')
+    connection = sqlite3.connect(':memory:')
     # here be dragons
     connection.execute('PRAGMA synchronous = OFF')
     # avoid globals

@@ -11,38 +11,18 @@
 # In[1]:
 
 
-from contextlib import contextmanager
-import sqlite3
-import typing as T
-import sys
+# package imports
+
+# why all the try excepts?
+# because weird stuff happens
+# when this code is executed from a jupyter
+# notebook vs as a module vs as __main__
 
 try:
     from graphql_example.logging_utilities import *
 except ModuleNotFoundError:
     from logging_utilities import *
 
-import aiohttp
-from aiohttp import web
-from aiohttp_graphql import GraphQLView
-
-from IPython import get_ipython
-
-from eliot import (
-    start_action,
-    Message,
-    to_file,
-    use_asyncio_context
-)
-
-
-# In[2]:
-
-
-# initialize app
-app = web.Application()
-routes = web.RouteTableDef()
-
-# configure app
 try:
     from graphql_example.on_startup import (
     configure_logging,
@@ -58,15 +38,50 @@ except ModuleNotFoundError:
         seed_db
     )
 
-app.on_startup.append(configure_logging)
-app.on_startup.append(configure_database)
-app.on_startup.append(create_tables)
-app.on_startup.append(seed_db)
 
 try:
     from graphql_example.on_cleanup import drop_tables, close_db
 except:
     from on_cleanup import drop_tables, close_db
+    
+try:
+    from graphql_example.db_queries import fetch_authors, fetch_books
+except ModuleNotFoundError:
+    from db_queries import fetch_authors, fetch_books
+
+try:
+    from graphql_example.domain_model import Author as AuthorModel
+    from graphql_example.domain_model import Book as BookModel
+except ModuleNotFoundError:
+    from domain_model import Author as AuthorModel
+    from domain_model import Book as BookModel
+    
+    
+    
+from aiohttp import web
+
+
+# In[2]:
+
+
+# initialize app
+app = web.Application()
+routes = web.RouteTableDef()
+
+# configure web app
+
+# configure database
+import sqlite3
+connection = sqlite3.connect(':memory:')
+# here be dragons
+connection.execute('PRAGMA synchronous = OFF')
+# avoid globals
+app['connection'] = connection
+
+app.on_startup.append(configure_logging)
+#app.on_startup.append(configure_database)
+app.on_startup.append(create_tables)
+app.on_startup.append(seed_db)
 
 
 app.on_cleanup.append(drop_tables)
@@ -157,11 +172,6 @@ class Book:
 # In[5]:
 
 
-try:
-    from graphql_example.db_queries import fetch_authors, fetch_books
-except ModuleNotFoundError:
-    from db_queries import fetch_authors, fetch_books
-
 @routes.get('/rest/author')
 async def author(request):
     connection = request.app['connection']
@@ -226,42 +236,77 @@ async def book(request):
 # In[6]:
 
 
-try:
-    from graphql_example.domain_model import Author as AuthorModel
-    from graphql_example.domain_model import Book as BookModel
-except ModuleNotFoundError:
-    from domain_model import Author as AuthorModel
-    from domain_model import Book as BookModel
-
-import graphene
+from graphene import relay
+import graphene as g
+from pprint import pprint
 
 
-class Author(graphene.ObjectType):
-    pass
+class Author(g.ObjectType):
+    id = g.Int(description='The primary key in the database')
+    first_name = g.String()
+    last_name = g.String()
+    age = g.Int()   
     
 
 
-class Query(graphene.ObjectType):
-    hello = graphene.String(description='A typical hello world')
+class Query(g.ObjectType):
+    
+    authors = g.List(
+        
+        Author,
+        
+        # these will be passed as named arguments
+        # to the resolver function for the authors
+        # scalar because graphene has terrible design
+        id=g.Int(default_value=-1),
+        first_name=g.String(default_value=''),
+        last_name=g.String(default_value=''),
+        age=g.Int(default_value=0),
+        limit=g.Int(default_value=0)
 
-    def resolve_hello(self, info):
-        return 'World'
+    )
+    
+    def resolve_authors(
+        self,
+        info,
+        id,
+        first_name,
+        last_name,
+        age,
+        limit
+    ):
+        """Resolve the arguments"""
+        kwargs = dict(
+            id = id if id != -1 else None,
+            first_name = None or first_name,
+            last_name = None or last_name,
+            age = None or age,
+            limit = None or limit
+        )
+        
+        authors = fetch_authors(connection, **kwargs)
+        
+        return [
+            Author(
+                a['id'],
+                a['first_name'],
+                a['last_name'],
+                a['age'],
+            ) for a in authors
+        ]
+        
+    
 
-schema = graphene.Schema(query=Query)
 
-query = '''
-    query SayHello {
-      hello
-    }
-'''
-
-dict(schema.execute(query).data)
+schema = g.Schema(query=Query)
 
 
 # ## graphql route/view
 
 # In[ ]:
 
+
+from aiohttp_graphql import GraphQLView
 
 gql_view = GraphQLView(schema=schema, graphiql=True)
 
