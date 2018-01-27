@@ -41,9 +41,6 @@ def overwrite_module_from_notebook():
         main_module.write(body)
 
 
-overwrite_module_from_notebook()
-
-
 @click.group()
 def main():
     """A cli for graphql-example."""
