@@ -1,7 +1,7 @@
 try:
-    from graphql_example.domain_model import Author, Book
+    from graphql_example.model import Author, Book
 except ModuleNotFoundError:
-    from domain_model import Author, Book
+    from model import Author, Book
 
 from mimesis import Generic
 

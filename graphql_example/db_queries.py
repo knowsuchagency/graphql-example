@@ -87,6 +87,7 @@ def fetch_authors(
 def fetch_books(
         connection,
         id=None,
+        title=None,
         published=None,
         author_id=None,
         limit=None,
@@ -94,6 +95,7 @@ def fetch_books(
 
     value_query = (
         (id, 'select * from book where id = ?'),
+        (title, 'select * from book where title = ?'),
         (published, 'select * from book where published = ?'),
         (author_id, 'select * from book where author_id = ?'),
     )

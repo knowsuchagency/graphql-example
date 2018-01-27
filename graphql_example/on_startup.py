@@ -3,6 +3,8 @@ import random
 import sqlite3
 import sys
 
+import pkg_resources
+
 try:
     from graphql_example.factories import book_factory, author_factory
 except ModuleNotFoundError:
@@ -30,8 +32,13 @@ async def configure_logging(app):
 
 async def configure_database(app):
     # configure database
+
+    db_filename = pkg_resources.resource_filename(
+        'graphql_example', 'library.sqlite'
+    )
+
     connection = sqlite3.connect(
-        ':memory:',
+        db_filename,
         # here be dragons
         check_same_thread=False
     )

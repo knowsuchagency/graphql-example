@@ -3,6 +3,29 @@
 
 # # A simple graphql backend implented in aiohttp
 
+# ## Installation - requires Python 3.6
+# 
+# `pip install graphql-example`
+# 
+# ### to run the web-app
+# 
+# `graphql_example runserver`
+# 
+# Restful endpoints
+# ---
+# 
+# http://localhost:8080/rest/author/{id}
+# 
+# http://localhost:8080/rest/author?limit=5
+# 
+# http://localhost:8080/rest/book/{id}
+# 
+# http://localhost:8080/rest/book?limit=7
+# 
+# Graphql endpoint
+# http://localhost:8080/graphql
+# 
+
 # 1. imports from stdlib, web-framework, and logging framework
 # 2. configure logging
 # 3. initialize web application and route table
@@ -20,6 +43,9 @@
 
 from functools import partial
 import typing as T
+import sqlite3
+
+import pkg_resources
 
 try:
     from graphql_example.logging_utilities import *
@@ -51,13 +77,6 @@ try:
     from graphql_example.db_queries import fetch_authors, fetch_books
 except ModuleNotFoundError:
     from db_queries import fetch_authors, fetch_books
-
-# try:
-#     from graphql_example.domain_model import Author as AuthorModel
-#     from graphql_example.domain_model import Book as BookModel
-# except ModuleNotFoundError:
-#     from domain_model import Author as AuthorModel
-#     from domain_model import Book as BookModel
     
     
 from aiohttp_graphql import GraphQLView
@@ -110,7 +129,7 @@ async def greet_view(request):
                 text=f'<html><h2>Hello {name}!</h2><html>',
                 content_type='Content-Type: text/html'
             )
-                
+
         with log_response(response):
             
             return response
@@ -121,26 +140,26 @@ async def greet_view(request):
 # In[3]:
 
 
-# import typing as T
-# from datetime import date as Date
+import typing as T
+from datetime import date as Date
 
-# # the PEP 557 future is now
-# from attr import dataclass
-
-
-# @dataclass
-# class Author:
-#     first_name: str
-#     last_name: str
-#     age: int
-#     books: T.Optional[T.List['Book']]
+# the PEP 557 future is now
+from attr import dataclass
 
 
-# @dataclass
-# class Book:
-#     title: str
-#     author: Author
-#     published: Date
+@dataclass
+class Author:
+    first_name: str
+    last_name: str
+    age: int
+    books: T.Optional[T.List['Book']]
+
+
+@dataclass
+class Book:
+    title: str
+    author: Author
+    published: Date
 
 
 # # Rest views
@@ -157,7 +176,7 @@ async def greet_view(request):
 # `/rest/author?age=42&no_books=true`
 # `/rest/book?author_id=3&limit=5`
 
-# In[ ]:
+# In[4]:
 
 
 async def books(request):
@@ -167,7 +186,8 @@ async def books(request):
     with log_request(request):
 
         # parse values from query params
-
+        
+        title = request.query.get('title')
         published = request.query.get('published')
         author_id = request.query.get('author_id')
         limit = int(request.query.get('limit', 0))
@@ -177,6 +197,7 @@ async def books(request):
 
         query_db = partial(fetch_books,
             request.app['connection'],
+            title=title,
             published=published,
             author_id=author_id,
             limit=limit)
@@ -311,6 +332,15 @@ class Book(g.ObjectType):
 
 class Query(g.ObjectType):
     
+    db_filename = pkg_resources.resource_filename(
+        'graphql_example', 'library.sqlite'
+    )
+    
+    connection = sqlite3.connect(
+            db_filename,
+            check_same_thread=False
+        )
+    
     author = g.Field(Author)
     book = g.Field(Book)
     
@@ -327,75 +357,116 @@ class Query(g.ObjectType):
         # graphene's design (not to mention documentation)
         # leaves a lot to be desired
         
-        id=g.Int(default_value=-1),
-        first_name=g.String(default_value=''),
-        last_name=g.String(default_value=''),
-        age=g.Int(default_value=0),
-        limit=g.Int(default_value=0)
+        id=g.Int(),
+        first_name=g.String(),
+        last_name=g.String(),
+        age=g.Int(),
+        limit=g.Int(description='The amount of results you wish to be limited to')
 
     )
+    
+    books = g.List(
+        Book,
+        id=g.Int(),
+        title=g.String(),
+        published=g.String(),
+        author_id=g.Int(description='The unique ID of the author in the database'),
+        limit=g.Int('The amount of results you with to be limited to')
+    )
+    
+    def resolve_books(
+        self,
+        info,
+        id=None,
+        title=None,
+        published=None,
+        author_id=None,
+        limit=None
+    ):
+        
+        fetched = fetch_books(
+            Query.connection,
+            id=id,
+            title=title,
+            published=published,
+            author_id=author_id,
+            limit=limit
+        )
+        
+        books = []
+        
+        for book_dict in fetched:
+            
+            author = Author(
+                id=book_dict['author']['id'],
+                first_name=book_dict['author']['first_name'],
+                last_name=book_dict['author']['last_name'],
+                age=book_dict['author']['age']
+            )
+            
+            book = Book(
+                id=book_dict['id'],
+                title=book_dict['title'],
+                published=book_dict['published'],
+                author=author
+                
+            )
+            
+            books.append(book)
+            
+        return books
     
     def resolve_authors(
         self,
         info,
-        id,
-        first_name,
-        last_name,
-        age,
-        limit
-    ):
-        """Resolve the arguments"""
-        kwargs = dict(
-            id = id if id != -1 else None,
-            first_name = None or first_name,
-            last_name = None or last_name,
-            age = None or age,
-            limit = None or limit
-        )
         
-        fetched = fetch_authors(connection, **kwargs)
+        id=None,
+        first_name=None,
+        last_name=None,
+        age=None,
+        limit=None
+    ):
+        
+        fetched = fetch_authors(
+            Query.connection,
+            
+            id=id,
+            first_name=first_name,
+            last_name=last_name,
+            age=age,
+            limit=limit
+        )
         
         authors = []
         
-        for author in fetched:
-            pass
+        for author_dict in fetched:
             
+            books = [
+                Book(
+                    id=b['id'],
+                    title=b['title'],
+                    published=b['published']
+                ) for b in author_dict['books']
+            ]
+            
+            author = Author(
+                id=author_dict['id'],
+                first_name=author_dict['first_name'],
+                last_name=author_dict['last_name'],
+                age=author_dict['age'],
+                books=books
+            )
+            
+            authors.append(author)
         
-        return [
-            Author(
-                a['id'],
-                a['first_name'],
-                a['last_name'],
-                a['age'],
-            ) for a in authors
-        ]
+        return authors
         
-    
 
 
-schema = g.Schema(query=Query)
+schema = g.Schema(query=Query, auto_camelcase=False)
 
 
-# ## graphql route/view
-
-# In[ ]:
-
-
-# from aiohttp_graphql import GraphQLView
-
-# gql_view = GraphQLView(schema=schema,
-#                        graphiql=True,
-#                        enable_async=True
-#                       )
-
-# app.router.add_route('*',
-#                      '/graphql',
-#                      gql_view,
-#                      name='graphql'
-#                     )
-
-
-# In[ ]:
+# In[7]:
 
 
 # add routes from decorators
