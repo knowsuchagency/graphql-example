@@ -1,7 +1,31 @@
 from functools import singledispatch
 from pathlib import Path
 
+import pkg_resources
+
 from fabric.api import *
+
+import nbformat
+import nbconvert
+
+
+def overwrite_module_from_notebook():
+    """Overwrite graphql_example.py from same-named notebook"""
+
+    nbfilename = pkg_resources.resource_filename('graphql_example',
+                                                 'graphql_example.ipynb')
+
+    notebook = nbformat.read(nbfilename, as_version=4)
+
+    exporter = nbconvert.PythonExporter()
+
+    body, *_ = exporter.from_notebook_node(notebook)
+
+    module_filename = pkg_resources.resource_filename('graphql_example',
+                                                      'graphql_example.py')
+
+    with open(module_filename, 'w') as main_module:
+        main_module.write(body)
 
 
 @task
@@ -146,7 +170,6 @@ def prepare_readme():
 @task
 def prepare_module():
     """Replace graphql_example module with notebook."""
-    from graphql_example.cli import overwrite_module_from_notebook
     overwrite_module_from_notebook()
 
 

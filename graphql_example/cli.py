@@ -14,31 +14,7 @@ import subprocess as sp
 import re
 import os
 
-import pkg_resources
-
 import click
-
-import nbformat
-import nbconvert
-
-
-def overwrite_module_from_notebook():
-    """Overwrite graphql_example.py from same-named notebook"""
-
-    nbfilename = pkg_resources.resource_filename('graphql_example',
-                                                 'graphql_example.ipynb')
-
-    notebook = nbformat.read(nbfilename, as_version=4)
-
-    exporter = nbconvert.PythonExporter()
-
-    body, *_ = exporter.from_notebook_node(notebook)
-
-    module_filename = pkg_resources.resource_filename('graphql_example',
-                                                      'graphql_example.py')
-
-    with open(module_filename, 'w') as main_module:
-        main_module.write(body)
 
 
 @click.group()
@@ -55,7 +31,9 @@ def runserver(host, port):
     print("starting server")
 
     try:
-        sp.run(('touch', 'log.json'))
+        logfile = Path('log.json')
+        logfile.unlink()
+        logfile.touch()
         server = sp.Popen(f'python -m '
                           f'aiohttp.web '
                           f'graphql_example.graphql_example:app_factory '
