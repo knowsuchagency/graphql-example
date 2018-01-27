@@ -11,7 +11,6 @@ Commands:
 """
 from pathlib import Path
 import subprocess as sp
-import time
 import re
 import os
 
@@ -59,6 +58,7 @@ def runserver(host, port):
     print("starting server")
 
     try:
+        sp.run(('touch', 'log.json'))
         server = sp.Popen(f'python -m '
                           f'aiohttp.web '
                           f'graphql_example.graphql_example:app_factory '
@@ -66,11 +66,6 @@ def runserver(host, port):
                           f'-P {port}', shell=True)
 
         print('server started')
-
-        for _ in range(3):
-            print('.', end=' ')
-            time.sleep(0.4)
-
         sp.run('tail -f log.json | eliot-tree', shell=True)
     finally:
         server.terminate()

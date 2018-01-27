@@ -12,10 +12,10 @@ eliot = "*"
 eliot-tree = "*"
 aiohttp = "*"
 jupyter = "*"
-aiohttp-graphql = {git = "https://github.com/graphql-python/aiohttp-graphql"}
 graphene = "*"
 aiohttp-mako = "*"
 mimesis = "*"
+aiohttp-graphql = "*"
 
 
 [dev-packages]
