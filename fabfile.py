@@ -82,7 +82,7 @@ def dist():
 def release():
     """Package and upload a release to pypi."""
     clean()
-    test_all()
+    test()
     local('python setup.py sdist bdist_wheel')
     local('twine upload dist/*')
 
