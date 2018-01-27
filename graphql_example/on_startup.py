@@ -1,7 +1,6 @@
 import typing as T
 import random
 import sqlite3
-import sys
 
 import pkg_resources
 
@@ -10,8 +9,8 @@ try:
 except ModuleNotFoundError:
     from factories import book_factory, author_factory
 
-from IPython import get_ipython
 from eliot import to_file, use_asyncio_context
+
 
 async def configure_logging(app):
 
@@ -19,33 +18,22 @@ async def configure_logging(app):
 
     to_file(open('log.json', 'w'))
 
-    _ipython = str(type(get_ipython()))
-
-    in_jupyter_notebook = 'ipython' in _ipython or 'zmqshell' in _ipython
-
-    testing = app.get('config', {}).get('testing')
-
-    if not in_jupyter_notebook and not testing:
-        # we don't want lots of output in a jupyter notebook
-        stdout_destination = to_file(sys.stdout)
-
 
 async def configure_database(app):
     # configure database
 
-    db_filename = pkg_resources.resource_filename(
-        'graphql_example', 'library.sqlite'
-    )
+    db_filename = pkg_resources.resource_filename('graphql_example',
+                                                  'library.sqlite')
 
     connection = sqlite3.connect(
         db_filename,
         # here be dragons
-        check_same_thread=False
-    )
+        check_same_thread=False)
     # moar dragons
     connection.execute('PRAGMA synchronous = OFF')
 
     app['connection'] = connection
+
 
 async def create_tables(app):
     print('creating tables')
@@ -101,6 +89,7 @@ async def seed_db(app):
             books.append((book.title, book.published, author_id))
 
         connection.executemany(
-            'INSERT INTO book (title, published, author_id) VALUES (?, ?, ?)', books)
+            'INSERT INTO book (title, published, author_id) VALUES (?, ?, ?)',
+            books)
 
     print('database seeded')

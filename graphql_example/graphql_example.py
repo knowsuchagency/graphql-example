@@ -135,7 +135,7 @@ async def greet_view(request):
             return response
 
 
-# ## The model
+# # The model
 
 # In[3]:
 
@@ -319,7 +319,7 @@ class Author(g.ObjectType):
     last_name = g.String()
     age = g.Int()
     books = g.List(lambda: Book)
-    
+
 
 class Book(g.ObjectType):
     """A book, written by an author"""
@@ -327,140 +327,116 @@ class Book(g.ObjectType):
     title = g.String(description='The title of the book')
     published = g.String(description='The date it was published')
     author = g.Field(Author)
-    
 
 
 class Query(g.ObjectType):
-    
-    db_filename = pkg_resources.resource_filename(
-        'graphql_example', 'library.sqlite'
-    )
-    
-    connection = sqlite3.connect(
-            db_filename,
-            check_same_thread=False
-        )
-    
+
+    db_filename = pkg_resources.resource_filename('graphql_example',
+                                                  'library.sqlite')
+
+    connection = sqlite3.connect(db_filename, check_same_thread=False)
+
     author = g.Field(Author)
     book = g.Field(Book)
-    
+
     authors = g.List(
-        
         Author,
-        
-        # the following will be passed as named 
+
+        # the following will be passed as named
         # arguments to the resolver function
-        
+
         # sadly, we can't assign None as a default value
         # for any of the arguments
-        
+
         # graphene's design (not to mention documentation)
         # leaves a lot to be desired
-        
         id=g.Int(),
         first_name=g.String(),
         last_name=g.String(),
         age=g.Int(),
-        limit=g.Int(description='The amount of results you wish to be limited to')
+        limit=g.Int(
+            description='The amount of results you wish to be limited to'))
 
-    )
-    
     books = g.List(
         Book,
         id=g.Int(),
         title=g.String(),
         published=g.String(),
-        author_id=g.Int(description='The unique ID of the author in the database'),
-        limit=g.Int('The amount of results you with to be limited to')
-    )
-    
-    def resolve_books(
-        self,
-        info,
-        id=None,
-        title=None,
-        published=None,
-        author_id=None,
-        limit=None
-    ):
-        
+        author_id=g.Int(
+            description='The unique ID of the author in the database'),
+        limit=g.Int('The amount of results you with to be limited to'))
+
+    def resolve_books(self,
+                      info,
+                      id=None,
+                      title=None,
+                      published=None,
+                      author_id=None,
+                      limit=None):
+
         fetched = fetch_books(
             Query.connection,
             id=id,
             title=title,
             published=published,
             author_id=author_id,
-            limit=limit
-        )
-        
+            limit=limit)
+
         books = []
-        
+
         for book_dict in fetched:
-            
+
             author = Author(
                 id=book_dict['author']['id'],
                 first_name=book_dict['author']['first_name'],
                 last_name=book_dict['author']['last_name'],
-                age=book_dict['author']['age']
-            )
-            
+                age=book_dict['author']['age'])
+
             book = Book(
                 id=book_dict['id'],
                 title=book_dict['title'],
                 published=book_dict['published'],
-                author=author
-                
-            )
-            
+                author=author)
+
             books.append(book)
-            
+
         return books
-    
-    def resolve_authors(
-        self,
-        info,
-        
-        id=None,
-        first_name=None,
-        last_name=None,
-        age=None,
-        limit=None
-    ):
-        
+
+    def resolve_authors(self,
+                        info,
+                        id=None,
+                        first_name=None,
+                        last_name=None,
+                        age=None,
+                        limit=None):
+
         fetched = fetch_authors(
             Query.connection,
-            
             id=id,
             first_name=first_name,
             last_name=last_name,
             age=age,
-            limit=limit
-        )
-        
+            limit=limit)
+
         authors = []
-        
+
         for author_dict in fetched:
-            
+
             books = [
-                Book(
-                    id=b['id'],
-                    title=b['title'],
-                    published=b['published']
-                ) for b in author_dict['books']
+                Book(id=b['id'], title=b['title'], published=b['published'])
+                for b in author_dict['books']
             ]
-            
+
             author = Author(
                 id=author_dict['id'],
                 first_name=author_dict['first_name'],
                 last_name=author_dict['last_name'],
                 age=author_dict['age'],
-                books=books
-            )
-            
+                books=books)
+
             authors.append(author)
-        
+
         return authors
-        
 
 
 schema = g.Schema(query=Query, auto_camelcase=False)
@@ -469,10 +445,7 @@ schema = g.Schema(query=Query, auto_camelcase=False)
 # In[7]:
 
 
-# add routes from decorators
-#app.router.add_routes(routes)
-
-def app_factory():
+def app_factory(args=None):
 
     # initialize app
     app = web.Application()
@@ -483,15 +456,16 @@ def app_factory():
     app.on_startup.append(create_tables)
     app.on_startup.append(seed_db)
     
-    # routes
+    # example routes
     app.router.add_get('/', index_view)
     app.router.add_get('/greet/{name}', greet_view, name='greet')
+    # rest routes
     app.router.add_get('/rest/author/{id}', author)
     app.router.add_get('/rest/author', authors)
     app.router.add_get('/rest/book/{id}', book)
     app.router.add_get('/rest/book', books)
     
-    # graphql routes
+    # graphql view/route
     gql_view = GraphQLView(schema=schema,
                            graphiql=True,
                            enable_async=True
@@ -511,7 +485,6 @@ def app_factory():
 
 if __name__ == '__main__':
     
-    #stdout_destination = to_file(sys.stdout)
     app = app_factory()
     
     web.run_app(app, host='127.0.0.1', port=8080)

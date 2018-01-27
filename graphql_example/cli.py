@@ -10,6 +10,8 @@ Commands:
   runserver  Run the server.
 """
 from pathlib import Path
+import subprocess as sp
+import time
 import re
 import os
 
@@ -19,8 +21,6 @@ import click
 
 import nbformat
 import nbconvert
-
-from aiohttp import web
 
 
 def overwrite_module_from_notebook():
@@ -44,8 +44,6 @@ def overwrite_module_from_notebook():
 
 overwrite_module_from_notebook()
 
-from graphql_example.graphql_example import app_factory
-
 
 @click.group()
 def main():
@@ -58,9 +56,24 @@ def main():
 @click.option('--host', default='localhost')
 def runserver(host, port):
     """Run the server."""
-    print("it's happening")
-    app = app_factory()
-    web.run_app(app, host=host, port=port)
+    print("starting server")
+
+    try:
+        server = sp.Popen(f'python -m '
+                          f'aiohttp.web '
+                          f'graphql_example.graphql_example:app_factory '
+                          f'-H {host} '
+                          f'-P {port}', shell=True)
+
+        print('server started')
+
+        for _ in range(3):
+            print('.', end=' ')
+            time.sleep(0.4)
+
+        sp.run('tail -f log.json | eliot-tree', shell=True)
+    finally:
+        server.terminate()
 
 
 def transform_module_text(matchobj):
