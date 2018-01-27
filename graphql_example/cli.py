@@ -44,7 +44,7 @@ def overwrite_module_from_notebook():
 
 overwrite_module_from_notebook()
 
-from graphql_example.graphql_example import app
+from graphql_example.graphql_example import app_factory
 
 
 @click.group()
@@ -59,6 +59,7 @@ def main():
 def runserver(host, port):
     """Run the server."""
     print("it's happening")
+    app = app_factory()
     web.run_app(app, host=host, port=port)
 
 

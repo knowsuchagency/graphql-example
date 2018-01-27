@@ -18,6 +18,9 @@
 # when this code is executed from a jupyter
 # notebook vs as a module vs as __main__
 
+from functools import partial
+import typing as T
+
 try:
     from graphql_example.logging_utilities import *
 except ModuleNotFoundError:
@@ -49,51 +52,24 @@ try:
 except ModuleNotFoundError:
     from db_queries import fetch_authors, fetch_books
 
-try:
-    from graphql_example.domain_model import Author as AuthorModel
-    from graphql_example.domain_model import Book as BookModel
-except ModuleNotFoundError:
-    from domain_model import Author as AuthorModel
-    from domain_model import Book as BookModel
+# try:
+#     from graphql_example.domain_model import Author as AuthorModel
+#     from graphql_example.domain_model import Book as BookModel
+# except ModuleNotFoundError:
+#     from domain_model import Author as AuthorModel
+#     from domain_model import Book as BookModel
     
     
-    
+from aiohttp_graphql import GraphQLView
 from aiohttp import web
-
-
-# In[2]:
-
-
-# initialize app
-app = web.Application()
-routes = web.RouteTableDef()
-
-# configure web app
-
-# configure database
-import sqlite3
-connection = sqlite3.connect(':memory:')
-# here be dragons
-connection.execute('PRAGMA synchronous = OFF')
-# avoid globals
-app['connection'] = connection
-
-app.on_startup.append(configure_logging)
-#app.on_startup.append(configure_database)
-app.on_startup.append(create_tables)
-app.on_startup.append(seed_db)
-
-
-app.on_cleanup.append(drop_tables)
-app.on_cleanup.append(close_db)
 
 
 # ## Brief aiohttp route/view example w/eliot logging
 # 
 # Two simple view coroutines decorated with their routes
 # 
-# Note, aiohttp also allows one to add routes and related views without
-# the use of decorators as flask does
+# aiohttp also allows one to add routes and related views without
+# using decorators or explicitly as such
 # 
 # ```python3
 # 
@@ -103,16 +79,16 @@ app.on_cleanup.append(close_db)
 # 
 # ```
 # 
-# This is arguably better, if only because you could see
+# which is arguably better, if only because you could see
 # the mapping of all your routes and related views in one
 # place without resorting to programmatically iterate through the
 # route table's resource map
 
-# In[3]:
+# In[2]:
 
 
-@routes.get('/')
-async def index(request):
+#@routes.get('/')
+async def index_view(request):
     """Redirect to greet route."""
     with log_request(request):
         
@@ -123,8 +99,8 @@ async def index(request):
             return web.HTTPFound(url)
 
 
-@routes.get('/greet/{name}', name='greet')
-async def greet(request):
+#@routes.get('/greet/{name}', name='greet')
+async def greet_view(request):
     """Say hello."""
     with log_request(request):
         
@@ -140,59 +116,109 @@ async def greet(request):
             return response
 
 
-# ## The domain model
+# ## The model
 
-# In[4]:
-
-
-import typing as T
-from datetime import date as Date
-
-# the PEP 557 future is now
-from attr import dataclass
+# In[3]:
 
 
-@dataclass
-class Author:
-    first_name: str
-    last_name: str
-    age: int
-    books: T.Optional[T.List['Book']]
+# import typing as T
+# from datetime import date as Date
+
+# # the PEP 557 future is now
+# from attr import dataclass
 
 
-@dataclass
-class Book:
-    title: str
-    author: Author
-    published: Date
+# @dataclass
+# class Author:
+#     first_name: str
+#     last_name: str
+#     age: int
+#     books: T.Optional[T.List['Book']]
+
+
+# @dataclass
+# class Book:
+#     title: str
+#     author: Author
+#     published: Date
 
 
 # # Rest views
+# 
+# These def the logic for the routes we'll create on our application i.e.
+# 
+# For a single resource:
+# 
+# `/rest/author/{id}`
+# `/rest/book/{id}`
+# 
+# Or based on url query parameters:
+# 
+# `/rest/author?age=42&no_books=true`
+# `/rest/book?author_id=3&limit=5`
 
-# In[5]:
+# In[ ]:
 
 
-@routes.get('/rest/author')
-async def author(request):
+async def books(request):
+    """Return json response of books based on query params."""
     connection = request.app['connection']
 
     with log_request(request):
 
         # parse values from query params
 
-        id = None or int(request.query.get('id', 0))
+        published = request.query.get('published')
+        author_id = request.query.get('author_id')
+        limit = int(request.query.get('limit', 0))
+        
+        # querying from the database is a potentially blocking function
+        # so we run it in an executor
+
+        query_db = partial(fetch_books,
+            request.app['connection'],
+            published=published,
+            author_id=author_id,
+            limit=limit)
+        
+        query_db_task = request.loop.run_in_executor(None, query_db)
+        
+        books: T.List[dict] = await query_db_task
+
+        response = web.json_response(books)
+
+        with log_response(response):
+
+            return response
+
+async def authors(request):
+    """Return json response of authors based on query params."""
+    connection = request.app['connection']
+
+    with log_request(request):
+
+        # parse values from query params
+
         first_name = request.query.get('first_name')
         last_name = request.query.get('last_name')
         age = None or int(request.query.get('age', 0))
         limit = int(request.query.get('limit', 0))
+        # client may not want/need book information
+        no_books = str(request.query.get('no_books','')).lower().startswith('t')
 
-        authors = fetch_authors(
+        query_db = partial(
+            fetch_authors,
             request.app['connection'],
-            id=id,
             first_name=first_name,
             last_name=last_name,
             age=age,
-            limit=limit)
+            limit=limit,
+            no_books=no_books
+        )
+        
+        query_db_task = request.loop.run_in_executor(None, query_db)
+        
+        authors: T.List[dict] = await query_db_task
 
         response = web.json_response(authors)
 
@@ -201,34 +227,58 @@ async def author(request):
             return response
 
 
-@routes.get('/rest/book')
-async def book(request):
+# In[5]:
+
+
+async def author(request):
+    """Return a single author for a given id."""
+
     connection = request.app['connection']
 
     with log_request(request):
+        try:
+            db_query = partial(
+                fetch_authors, connection, id=int(request.match_info['id']))
 
-        # parse values from query params
+            author, *_ = await request.loop.run_in_executor(None, db_query)
 
-        id = None or int(request.query.get('id', 0))
-        published = request.query.get('published')
-        author_id = request.query.get('author_id')
-        limit = int(request.query.get('limit', 0))
+        except ValueError:
+            author = None
 
-        # build sql query
+        if not author:
+            log_message('Author not found', id=request.match_info['id'])
+            raise web.HTTPNotFound
 
-        books = fetch_books(
-            request.app['connection'],
-            id=id,
-            published=published,
-            author_id=author_id,
-            limit=limit
-        )
+    response = web.json_response(author)
 
-        response = web.json_response(books)
+    with log_response(response):
+        return response
 
-        with log_response(response):
 
-            return response
+async def book(request):
+    """Return a single book for a given id."""
+
+    connection = request.app['connection']
+
+    with log_request(request):
+        try:
+
+            db_query = partial(
+                fetch_books, connection, id=int(request.match_info['id']))
+
+            book, *_ = await request.loop.run_in_executor(None, db_query)
+
+        except ValueError:
+            book = None
+
+        if not book:
+            log_message('Book not found', id=request.match_info['id'])
+            raise web.HTTPNotFound
+
+    response = web.json_response(book)
+
+    with log_response(response):
+        return response
 
 
 # ## graphql schema definition
@@ -242,22 +292,41 @@ from pprint import pprint
 
 
 class Author(g.ObjectType):
+    """This is a human being."""
     id = g.Int(description='The primary key in the database')
     first_name = g.String()
     last_name = g.String()
-    age = g.Int()   
+    age = g.Int()
+    books = g.List(lambda: Book)
+    
+
+class Book(g.ObjectType):
+    """A book, written by an author"""
+    id = g.Int(description='The primary key in the database')
+    title = g.String(description='The title of the book')
+    published = g.String(description='The date it was published')
+    author = g.Field(Author)
     
 
 
 class Query(g.ObjectType):
     
+    author = g.Field(Author)
+    book = g.Field(Book)
+    
     authors = g.List(
         
         Author,
         
-        # these will be passed as named arguments
-        # to the resolver function for the authors
-        # scalar because graphene has terrible design
+        # the following will be passed as named 
+        # arguments to the resolver function
+        
+        # sadly, we can't assign None as a default value
+        # for any of the arguments
+        
+        # graphene's design (not to mention documentation)
+        # leaves a lot to be desired
+        
         id=g.Int(default_value=-1),
         first_name=g.String(default_value=''),
         last_name=g.String(default_value=''),
@@ -284,7 +353,13 @@ class Query(g.ObjectType):
             limit = None or limit
         )
         
-        authors = fetch_authors(connection, **kwargs)
+        fetched = fetch_authors(connection, **kwargs)
+        
+        authors = []
+        
+        for author in fetched:
+            pass
+            
         
         return [
             Author(
@@ -306,22 +381,67 @@ schema = g.Schema(query=Query)
 # In[ ]:
 
 
-from aiohttp_graphql import GraphQLView
+# from aiohttp_graphql import GraphQLView
 
-gql_view = GraphQLView(schema=schema, graphiql=True)
+# gql_view = GraphQLView(schema=schema,
+#                        graphiql=True,
+#                        enable_async=True
+#                       )
 
-app.router.add_route('*', '/graphql', gql_view, name='graphql')
+# app.router.add_route('*',
+#                      '/graphql',
+#                      gql_view,
+#                      name='graphql'
+#                     )
 
 
 # In[ ]:
 
 
 # add routes from decorators
-app.router.add_routes(routes)
+#app.router.add_routes(routes)
+
+def app_factory():
+
+    # initialize app
+    app = web.Application()
+    
+    # startup
+    app.on_startup.append(configure_logging)
+    app.on_startup.append(configure_database)
+    app.on_startup.append(create_tables)
+    app.on_startup.append(seed_db)
+    
+    # routes
+    app.router.add_get('/', index_view)
+    app.router.add_get('/greet/{name}', greet_view, name='greet')
+    app.router.add_get('/rest/author/{id}', author)
+    app.router.add_get('/rest/author', authors)
+    app.router.add_get('/rest/book/{id}', book)
+    app.router.add_get('/rest/book', books)
+    
+    # graphql routes
+    gql_view = GraphQLView(schema=schema,
+                           graphiql=True,
+                           enable_async=True
+                          )
+
+    app.router.add_route('*',
+                         '/graphql',
+                         gql_view,
+                         name='graphql'
+                        )
+
+    # cleanup
+    app.on_cleanup.append(drop_tables)
+    app.on_cleanup.append(close_db)
+    
+    return app
 
 if __name__ == '__main__':
     
     #stdout_destination = to_file(sys.stdout)
+    app = app_factory()
     
     web.run_app(app, host='127.0.0.1', port=8080)
 

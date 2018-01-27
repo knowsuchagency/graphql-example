@@ -21,17 +21,23 @@ async def configure_logging(app):
 
     in_jupyter_notebook = 'ipython' in _ipython or 'zmqshell' in _ipython
 
-    if not in_jupyter_notebook:
+    testing = app.get('config', {}).get('testing')
+
+    if not in_jupyter_notebook and not testing:
         # we don't want lots of output in a jupyter notebook
         stdout_destination = to_file(sys.stdout)
 
 
 async def configure_database(app):
     # configure database
-    connection = sqlite3.connect(':memory:')
-    # here be dragons
+    connection = sqlite3.connect(
+        ':memory:',
+        # here be dragons
+        check_same_thread=False
+    )
+    # moar dragons
     connection.execute('PRAGMA synchronous = OFF')
-    # avoid globals
+
     app['connection'] = connection
 
 async def create_tables(app):

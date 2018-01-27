@@ -1,3 +1,5 @@
+import typing as T
+
 try:
     from graphql_example.logging_utilities import *
 except ModuleNotFoundError:
@@ -11,19 +13,15 @@ def fetch_authors(
         last_name=None,
         age=None,
         limit=None,
-):
+        no_books=False,
+) -> T.List[dict]:
     # build sql query
 
-    id_query = 'select * from author where id = ?'
-    first_name_query = 'select * from author where first_name = ?'
-    last_name_query = 'select * from author where last_name = ?'
-    age_query = 'select * from author where age = ?'
-
     value_query = (
-        (id, id_query),
-        (first_name, first_name_query),
-        (last_name, last_name_query),
-        (age, age_query),
+        (id, 'select * from author where id = ?'),
+        (first_name, 'select * from author where first_name = ?'),
+        (last_name, 'select * from author where last_name = ?'),
+        (age, 'select * from author where age = ?'),
     )
 
     query_string = ' UNION '.join(
@@ -46,15 +44,21 @@ def fetch_authors(
 
         with connection:
             if values:
-                author_rows = connection.execute(query_string, values)
+                rows = connection.execute(query_string, values)
             else:
-                author_rows = connection.execute(query_string)
+                rows = connection.execute(query_string)
 
-    # we'll append to this in a bit
+    authors = [{
+        'id': id,
+        'first_name': first_name,
+        'last_name': last_name,
+        'age': age,
+    } for id, first_name, last_name, age in rows]
 
-    authors = []
+    if no_books:
+        return authors
 
-    # now to get books
+    # getting authors' books
 
     book_query = 'select b.id, b.title, b.published from book b where b.author_id = ?'
 
@@ -62,11 +66,11 @@ def fetch_authors(
 
         with connection:
 
-            for author_id, first_name, last_name, age in author_rows:
+            for author in authors:
 
                 books = []
 
-                book_rows = connection.execute(book_query, (author_id, ))
+                book_rows = connection.execute(book_query, (author['id'], ))
 
                 for book_id, book_title, book_published in book_rows:
                     books.append({
@@ -75,15 +79,7 @@ def fetch_authors(
                         'published': book_published
                     })
 
-                author = {
-                    'id': author_id,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'age': age,
-                    'books': books
-                }
-
-                authors.append(author)
+                author['books'] = books
 
     return authors
 
@@ -94,15 +90,12 @@ def fetch_books(
         published=None,
         author_id=None,
         limit=None,
-):
-    id_query = 'select * from book where id = ?'
-    published_query = 'select * from book where published = ?'
-    author_id_query = 'select * from book where author_id = ?'
+) -> T.List[dict]:
 
     value_query = (
-        (id, id_query),
-        (published, published_query),
-        (author_id, author_id_query),
+        (id, 'select * from book where id = ?'),
+        (published, 'select * from book where published = ?'),
+        (author_id, 'select * from book where author_id = ?'),
     )
 
     query_string = ' UNION '.join(
@@ -137,6 +130,7 @@ def fetch_books(
 
         with connection:
             for book_id, title, published, author_id in book_rows:
+
                 author, *_ = connection.execute(author_query, (author_id, ))
 
                 author_id, first_name, last_name, age = author
