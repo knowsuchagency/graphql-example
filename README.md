@@ -173,6 +173,60 @@ Or based on url query parameters:
 
 
 ```python
+async def author(request):
+    """Return a single author for a given id."""
+
+    connection = request.app['connection']
+
+    with log_request(request):
+        try:
+            db_query = partial(
+                fetch_authors, connection, id=int(request.match_info['id']))
+
+            author, *_ = await request.loop.run_in_executor(None, db_query)
+
+        except ValueError:
+            author = None
+
+        if not author:
+            log_message('Author not found', id=request.match_info['id'])
+            raise web.HTTPNotFound
+
+    response = web.json_response(author)
+
+    with log_response(response):
+        return response
+
+
+async def book(request):
+    """Return a single book for a given id."""
+
+    connection = request.app['connection']
+
+    with log_request(request):
+        try:
+
+            db_query = partial(
+                fetch_books, connection, id=int(request.match_info['id']))
+
+            book, *_ = await request.loop.run_in_executor(None, db_query)
+
+        except ValueError:
+            book = None
+
+        if not book:
+            log_message('Book not found', id=request.match_info['id'])
+            raise web.HTTPNotFound
+
+    response = web.json_response(book)
+
+    with log_response(response):
+        return response
+
+```
+
+
+```python
 async def books(request):
     """Return json response of books based on query params."""
     connection = request.app['connection']
@@ -240,60 +294,6 @@ async def authors(request):
         with log_response(response):
 
             return response
-```
-
-
-```python
-async def author(request):
-    """Return a single author for a given id."""
-
-    connection = request.app['connection']
-
-    with log_request(request):
-        try:
-            db_query = partial(
-                fetch_authors, connection, id=int(request.match_info['id']))
-
-            author, *_ = await request.loop.run_in_executor(None, db_query)
-
-        except ValueError:
-            author = None
-
-        if not author:
-            log_message('Author not found', id=request.match_info['id'])
-            raise web.HTTPNotFound
-
-    response = web.json_response(author)
-
-    with log_response(response):
-        return response
-
-
-async def book(request):
-    """Return a single book for a given id."""
-
-    connection = request.app['connection']
-
-    with log_request(request):
-        try:
-
-            db_query = partial(
-                fetch_books, connection, id=int(request.match_info['id']))
-
-            book, *_ = await request.loop.run_in_executor(None, db_query)
-
-        except ValueError:
-            book = None
-
-        if not book:
-            log_message('Book not found', id=request.match_info['id'])
-            raise web.HTTPNotFound
-
-    response = web.json_response(book)
-
-    with log_response(response):
-        return response
-
 ```
 
 ## graphql schema definition
