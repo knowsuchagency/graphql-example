@@ -158,7 +158,7 @@ def runserver(
     port='8080',
     host='localhost',
     logfile='log.json',
-    db=':memory:'
+    db=None
 ):
     from graphql_example.graphql_example import app_factory
     from aiohttp import web

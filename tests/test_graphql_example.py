@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for `graphql_example` package."""
-from functools import partial
-
 from graphql_example.graphql_example import app_factory
 import os
 
@@ -11,7 +9,7 @@ import pytest
 
 @pytest.fixture
 def client(loop, test_client):
-    app = app_factory(logfile=os.devnull, )
+    app = app_factory(logfile=os.devnull)
     return loop.run_until_complete(test_client(app))
 
 
@@ -58,10 +56,13 @@ async def test_books(client):
     assert len(books) == 7
 
 
-async def test_graphql(client):
+async def test_graphql_index(client):
     resp = await client.get('/graphql')
 
     assert resp.status == 200
+
+
+async def test_graphql_queries(client):
 
     async def get_json(query):
         """

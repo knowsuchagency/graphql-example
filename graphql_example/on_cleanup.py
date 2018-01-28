@@ -2,7 +2,7 @@ import os
 
 
 async def drop_tables(app):
-    print('dropping table')
+    print('dropping tables')
 
     connection = app['connection']
 

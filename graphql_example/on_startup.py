@@ -25,15 +25,8 @@ async def configure_logging(app):
 
 async def configure_database(app):
     # configure database
-
-    db_filename = pkg_resources.resource_filename('graphql_example',
-                                                  'library.sqlite')
-
-    if 'db' in app['config']:
-        db_filename = app['config']['db']
-
     connection = sqlite3.connect(
-        db_filename,
+        app['config'].get('db') or ':memory:',
         # here be dragons
         check_same_thread=False)
     # moar dragons
@@ -61,7 +54,6 @@ async def create_tables(app):
         author_id INTEGER NOT NULL REFERENCES author(id)
 
     );
-
     """
 
     app['connection'].executescript(CREATE_TABLES)
