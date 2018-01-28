@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[6]:
+# In[1]:
 
 
 # package imports
@@ -55,31 +55,39 @@ from aiohttp_graphql import GraphQLView
 from aiohttp import web
 
 
-# # An example graphql backend implented in aiohttp
+# # graphql + aiohttp
 
 # ## Installation - requires Python 3.6
 # 
-# `pip install graphql-example`
+# preferably within a virtualenv:
+# 
+# `pip3 install graphql-example`
 # 
 # ### to run the web-app
 # 
+# (after pip install)
+# 
 # `graphql_example runserver`
 # 
-# ## to run tests
+# ### to run tests
 # 
-# `pip install graphql-example[dev]`
-# 
-# `graphql_example test`
+# ```
+# git clone https://github.com/knowsuchagency/graphql-example
+# pip3 install .[dev]
+# fab test
+# ```
 
 # ### In the beginning... there was REST.
 
-# (really Genesis, shortly thereafter followed by SOAP, but we'll ignore that for now)
+# Really Genesis, shortly thereafter followed by SOAP
+
+# ### The Model
 
 # Let's say we had a simple data model such as the following:
 # 
 # 
 
-# In[7]:
+# In[2]:
 
 
 class Author:
@@ -95,7 +103,7 @@ class Book:
     published: Date
 
 
-# In a RESTful server, the endpoints used to retrieve that data might look like the following
+# In a RESTful server, the endpoints used to retrieve that data might look something like this:
 # 
 # ---
 # 
@@ -143,7 +151,7 @@ class Book:
 # ]
 # ```
 
-# However we may still have some things to consider:
+# We still have some things to consider...
 # 
 # * What happens if we type `/rest/authors?age=34&no_books=True` or `/rest/authors?age=34&no_books=t`? In general, how do we define and interpret the arguments passed as query params and how to we enforce that contract with our clients and give them helpful feedback when mistakes are made?
 # * What happens if we have a similar query to the one above, where we ARE interested in the book information for a given author, but only a subset of that data, such as `title`, but not `published`? Seems hardly worth creating another filter. We'll probably just suck it up and retrieve all the data in the book field and ignore what isn't needed on the client side.
@@ -177,7 +185,7 @@ class Book:
 # 
 # ![buzz](https://i.imgur.com/zE4WD0C.jpg)
 
-# But really, it is first-and-foremost a declarative language specification for client-side data fetching. 
+# But really, GraphQL is first-and-foremost a declarative language specification for client-side data fetching. 
 # 
 # And, despite the snark, the buzz is important. GraphQL is created and backed by Facebook, and there is a rapidly growing community and ecosystem of libraries that make GraphQL compelling over other standards like JSON-API, Falcor, or OData.
 # 
@@ -227,12 +235,14 @@ class Book:
 # 
 # ```
 
-# In[2]:
+# In[3]:
 
 
 #@routes.get('/')
 async def index_view(request):
     """Redirect to greet route."""
+    # this logging sexiness is a talk for another time
+    # but it's a thin wrapper around eliot.start_action
     with log_request(request):
         
         url = request.app.router['greet'].url_for(name='you')
@@ -275,7 +285,36 @@ async def greet_view(request):
 # 
 # `/rest/books?author_id=3&limit=5`
 
-# In[5]:
+# In[4]:
+
+
+async def book(request):
+    """Return a single book for a given id."""
+
+    connection = request.app['connection']
+
+    with log_request(request):
+        try:
+
+            db_query = partial(
+                fetch_books, connection, id=int(request.match_info['id']))
+
+            book, *_ = await request.loop.run_in_executor(None, db_query)
+
+        except ValueError:
+            book = None
+
+        if not book:
+            log_message('Book not found', id=request.match_info['id'])
+            raise web.HTTPNotFound
+
+    response = web.json_response(book)
+
+    with log_response(response):
+        return response
+
+
+# In[ ]:
 
 
 async def author(request):
@@ -317,33 +356,7 @@ async def author(request):
         return response
 
 
-async def book(request):
-    """Return a single book for a given id."""
-
-    connection = request.app['connection']
-
-    with log_request(request):
-        try:
-
-            db_query = partial(
-                fetch_books, connection, id=int(request.match_info['id']))
-
-            book, *_ = await request.loop.run_in_executor(None, db_query)
-
-        except ValueError:
-            book = None
-
-        if not book:
-            log_message('Book not found', id=request.match_info['id'])
-            raise web.HTTPNotFound
-
-    response = web.json_response(book)
-
-    with log_response(response):
-        return response
-
-
-# In[4]:
+# In[ ]:
 
 
 async def books(request):
@@ -375,6 +388,10 @@ async def books(request):
         with log_response(response):
 
             return response
+
+
+# In[5]:
+
 
 async def authors(request):
     """Return json response of authors based on query params."""
@@ -418,7 +435,7 @@ async def authors(request):
 # 
 # This schema will then tell the library how to implement the GraphQL-compliant endpoint view.
 
-# In[6]:
+# In[ ]:
 
 
 import graphene as g
@@ -445,6 +462,10 @@ class Book(g.ObjectType):
     published = g.String(description='The date it was published')
     author = g.Field(Author)
     
+
+
+# In[6]:
+
 
 async def configure_graphql(app):
     """
