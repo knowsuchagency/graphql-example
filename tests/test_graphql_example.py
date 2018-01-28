@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """Tests for `graphql_example` package."""
+from functools import partial
+
 from graphql_example.graphql_example import app_factory
 
 import pytest
@@ -36,21 +38,64 @@ async def test_book(client):
 
 
 async def test_authors(client):
-    resp = await client.get('/rest/author?limit=7')
+    resp = await client.get('/rest/authors?limit=7')
     assert resp.status == 200
     authors = await resp.json()
     assert len(authors) == 7
     author, *_ = authors
     assert 'books' in author
 
-    resp = await client.get('/rest/author?limit=1&no_books=true')
+    resp = await client.get('/rest/authors?limit=1&no_books=true')
     authors = await resp.json()
     author, *_ = authors
     assert 'books' not in author
 
 
 async def test_books(client):
-    resp = await client.get('/rest/book?limit=7')
+    resp = await client.get('/rest/books?limit=7')
     assert resp.status == 200
     books = await resp.json()
     assert len(books) == 7
+
+
+async def test_graphql(client):
+    resp = await client.get('/graphql')
+
+    assert resp.status == 200
+
+    query = """
+    {
+      authors(id:1){
+        first_name
+        last_name
+        age
+      }
+    }
+    """
+
+    headers = {
+        'Accept': 'application/json'
+    }
+
+    # returns a coroutine that expects query
+    # as bytes passed to the data parameter
+
+    async def get_json(query):
+        resp = await client.get(
+            '/graphql',
+            headers=headers,
+            params={'query': query}
+        )
+
+        return await resp.json()
+
+    resp = await client.get('/graphql',
+                            data=query,
+                            headers=headers
+                            )
+
+    json = await get_json(query)
+
+    from pprint import pprint
+
+    pprint(json)

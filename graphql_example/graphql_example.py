@@ -461,9 +461,9 @@ def app_factory(args=None):
     app.router.add_get('/greet/{name}', greet_view, name='greet')
     # rest routes
     app.router.add_get('/rest/author/{id}', author)
-    app.router.add_get('/rest/author', authors)
+    app.router.add_get('/rest/authors', authors)
     app.router.add_get('/rest/book/{id}', book)
-    app.router.add_get('/rest/book', books)
+    app.router.add_get('/rest/books', books)
     
     # graphql view/route
     gql_view = GraphQLView(schema=schema,
@@ -474,8 +474,7 @@ def app_factory(args=None):
     app.router.add_route('*',
                          '/graphql',
                          gql_view,
-                         name='graphql'
-                        )
+                         )
 
     # cleanup
     app.on_cleanup.append(drop_tables)

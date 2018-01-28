@@ -1,6 +1,7 @@
 import typing as T
 import random
 import sqlite3
+from tempfile import NamedTemporaryFile
 
 import pkg_resources
 
@@ -24,6 +25,14 @@ async def configure_database(app):
 
     db_filename = pkg_resources.resource_filename('graphql_example',
                                                   'library.sqlite')
+
+    test_mode = app.get('config', {}).get('testing')
+
+    if test_mode:
+        tempfile = NamedTemporaryFile()
+        app['tempfile'] = tempfile.name
+        db_filename = tempfile.name
+        pass
 
     connection = sqlite3.connect(
         db_filename,
