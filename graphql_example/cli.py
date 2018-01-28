@@ -41,6 +41,7 @@ def runserver(host, port):
                           f'-P {port}', shell=True)
 
         print('server started')
+
         sp.run('tail -f log.json | eliot-tree', shell=True)
     finally:
         server.terminate()

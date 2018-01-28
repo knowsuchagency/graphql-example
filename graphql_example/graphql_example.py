@@ -364,7 +364,7 @@ class Query(g.ObjectType):
         published=g.String(),
         author_id=g.Int(
             description='The unique ID of the author in the database'),
-        limit=g.Int('The amount of results you with to be limited to'))
+        limit=g.Int(description='The amount of results you with to be limited to'))
 
     def resolve_books(self,
                       info,
@@ -445,17 +445,22 @@ schema = g.Schema(query=Query, auto_camelcase=False)
 # In[7]:
 
 
-def app_factory(args=None):
+def app_factory(*args, db=':memory:', logfile='log.json', **config_params):
 
     # initialize app
     app = web.Application()
-    
+
+    # set top-level configuration
+    app['config'] = {}
+    for key, value in config_params.items():
+        app['config'][key] = value
+
     # startup
     app.on_startup.append(configure_logging)
     app.on_startup.append(configure_database)
     app.on_startup.append(create_tables)
     app.on_startup.append(seed_db)
-    
+
     # example routes
     app.router.add_get('/', index_view)
     app.router.add_get('/greet/{name}', greet_view, name='greet')
@@ -464,27 +469,26 @@ def app_factory(args=None):
     app.router.add_get('/rest/authors', authors)
     app.router.add_get('/rest/book/{id}', book)
     app.router.add_get('/rest/books', books)
-    
-    # graphql view/route
-    gql_view = GraphQLView(schema=schema,
-                           graphiql=True,
-                           enable_async=True
-                          )
 
-    app.router.add_route('*',
-                         '/graphql',
-                         gql_view,
-                         )
+    # graphql view/route
+    gql_view = GraphQLView(schema=schema, graphiql=True, enable_async=True)
+
+    app.router.add_route(
+        '*',
+        '/graphql',
+        gql_view,
+    )
 
     # cleanup
     app.on_cleanup.append(drop_tables)
     app.on_cleanup.append(close_db)
-    
+
     return app
 
+
 if __name__ == '__main__':
-    
+
     app = app_factory()
-    
+
     web.run_app(app, host='127.0.0.1', port=8080)
 

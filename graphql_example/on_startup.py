@@ -1,7 +1,7 @@
 import typing as T
 import random
 import sqlite3
-from tempfile import NamedTemporaryFile
+import tempfile
 
 import pkg_resources
 
@@ -17,7 +17,10 @@ async def configure_logging(app):
 
     use_asyncio_context()
 
-    to_file(open('log.json', 'w'))
+    logfile = app['config'].get(
+        'logfile', 'log.json'
+    )
+    to_file(open(logfile, 'w'))
 
 
 async def configure_database(app):
@@ -26,13 +29,8 @@ async def configure_database(app):
     db_filename = pkg_resources.resource_filename('graphql_example',
                                                   'library.sqlite')
 
-    test_mode = app.get('config', {}).get('testing')
-
-    if test_mode:
-        tempfile = NamedTemporaryFile()
-        app['tempfile'] = tempfile.name
-        db_filename = tempfile.name
-        pass
+    if 'db' in app['config']:
+        db_filename = app['config']['db']
 
     connection = sqlite3.connect(
         db_filename,

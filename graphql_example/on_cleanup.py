@@ -1,3 +1,6 @@
+import os
+
+
 async def drop_tables(app):
     print('dropping table')
 

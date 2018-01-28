@@ -111,40 +111,6 @@ def release():
     local('twine upload dist/*')
 
 
-@singledispatch
-def true(arg):
-    """
-    Determine of the argument is True.
-
-    Since arguments coming from the command line
-    will always be interpreted as strings by fabric
-    this helper function just helps us to do what is
-    expected when arguments are passed to functions
-    explicitly in code vs from user input.
-
-    Just make sure NOT to do the following with task arguments:
-
-    @task
-    def foo(arg):
-        if arg: ...
-
-    Always wrap the conditional as so
-
-    @task
-    def foo(arg):
-        if true(arg): ...
-
-    and be aware that true('false') -> False
-
-    Args:
-        arg: anything
-
-    Returns: bool
-
-    """
-    return bool(arg)
-
-
 @task
 def prepare_readme():
     """Convert notebook to markdown and write it to the readme."""
@@ -186,6 +152,56 @@ def publish_to_github():
     prepare_files
     local('git push')
 
+
+@task
+def runserver(
+    port='8080',
+    host='localhost',
+    logfile='log.json',
+    db=':memory:'
+):
+    from graphql_example.graphql_example import app_factory
+    from aiohttp import web
+    app = app_factory(
+        db=db,
+        logfile=logfile
+    )
+
+    web.run_app(app, host=host, port=int(port))
+
+
+@singledispatch
+def true(arg):
+    """
+    Determine of the argument is True.
+
+    Since arguments coming from the command line
+    will always be interpreted as strings by fabric
+    this helper function just helps us to do what is
+    expected when arguments are passed to functions
+    explicitly in code vs from user input.
+
+    Just make sure NOT to do the following with task arguments:
+
+    @task
+    def foo(arg):
+        if arg: ...
+
+    Always wrap the conditional as so
+
+    @task
+    def foo(arg):
+        if true(arg): ...
+
+    and be aware that true('false') -> False
+
+    Args:
+        arg: anything
+
+    Returns: bool
+
+    """
+    return bool(arg)
 
 @true.register(str)
 def _(arg):
