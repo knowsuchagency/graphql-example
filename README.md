@@ -14,11 +14,11 @@ Restful endpoints
 
 http://localhost:8080/rest/author/{id}
 
-http://localhost:8080/rest/author?limit=5
+http://localhost:8080/rest/authors?limit=5
 
 http://localhost:8080/rest/book/{id}
 
-http://localhost:8080/rest/book?limit=7
+http://localhost:8080/rest/books?limit=7
 
 Graphql endpoint
 http://localhost:8080/graphql
