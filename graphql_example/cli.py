@@ -34,7 +34,7 @@ def runserver(host, port):
         logfile = Path('log.json')
         logfile.unlink()
         logfile.touch()
-        server = sp.Popen(f'python -m '
+        server = sp.Popen(f'python3 -m '
                           f'aiohttp.web '
                           f'graphql_example.graphql_example:app_factory '
                           f'-H {host} '
