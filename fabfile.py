@@ -8,6 +8,12 @@ from fabric.api import *
 import nbformat
 import nbconvert
 
+@task
+def slideshow():
+    local('jupyter nbconvert '
+          'graphql_example/graphql_example.ipynb '
+          '--to slides --post serve')
+
 
 def overwrite_module_from_notebook():
     """Overwrite graphql_example.py from same-named notebook"""
