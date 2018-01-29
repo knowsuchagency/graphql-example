@@ -281,9 +281,9 @@ async def greet_view(request):
 # 
 # Or based on url query parameters:
 # 
-# `/rest/authors?age=42&no_books=true`
+# `/rest/authors?age=42&no_books=true&first_name=Sam&last_name=Jones&limit=5`
 # 
-# `/rest/books?author_id=3&limit=5`
+# `/rest/books?author_id=3&limit=5?title="More Cowbell"&published="12/13/1996"`
 
 # In[4]:
 
