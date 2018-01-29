@@ -1,22 +1,21 @@
-import os
+try:
+    from graphql_example.logging_utilities import *
+except ModuleNotFoundError:
+    from logging_utilities import *
 
 
 async def drop_tables(app):
-    print('dropping tables')
+    with log_action('dropping tables'):
 
-    connection = app['connection']
+        connection = app['connection']
 
-    with connection:
-        connection.executescript("""
-        DROP TABLE author;
-        DROP TABLE book;
-        """)
-
-    print('tables dropped')
+        with connection:
+            connection.executescript("""
+            DROP TABLE author;
+            DROP TABLE book;
+            """)
 
 
-# close the database connection on shutdown
 async def close_db(app):
-    print('closing database connection')
-    app['connection'].close()
-    print('database connection closed')
+    with log_action('closing database connection'):
+        app['connection'].close()

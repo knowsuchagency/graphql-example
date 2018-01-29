@@ -163,17 +163,10 @@ def publish_to_github():
 def runserver(
     port='8080',
     host='localhost',
-    logfile='log.json',
-    db=None
 ):
-    from graphql_example.graphql_example import app_factory
-    from aiohttp import web
-    app = app_factory(
-        db=db,
-        logfile=logfile
-    )
-
-    web.run_app(app, host=host, port=int(port))
+    prepare_files()
+    local(f'graphql_example runserver '
+          f'--host {host} --port {port}')
 
 
 @singledispatch
