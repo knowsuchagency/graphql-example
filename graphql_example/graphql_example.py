@@ -59,6 +59,8 @@ import markdown
 
 # # graphql + aiohttp
 
+# [**slideshow**](http://nbviewer.jupyter.org/format/slides/github/knowsuchagency/graphql-example/blob/master/graphql_example/graphql_example.ipynb?flush_cache=true#/)
+
 # ## Installation - requires Python 3.6
 # 
 # preferably within a virtualenv:
