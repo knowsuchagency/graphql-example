@@ -281,6 +281,9 @@ The following can be passed as query parameters to books:
     title: The title of the book
     published: The date published in the following format %m/%d/%Y
     author_id: The uuid of the author in the database
+    
+    
+## [GraphQL](/graphql)
 
 """
 
