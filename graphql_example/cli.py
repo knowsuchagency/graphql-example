@@ -31,9 +31,8 @@ def runserver(host, port):
     print("starting server")
 
     try:
-        logfile = Path('log.json')
-        logfile.unlink()
-        logfile.touch()
+        with open('log.json', 'w'):
+            pass
         server = sp.Popen(f'python3 -m '
                           f'aiohttp.web '
                           f'graphql_example.graphql_example:app_factory '
