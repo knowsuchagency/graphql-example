@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[8]:
 
 
 # package imports
@@ -53,6 +53,8 @@ except ModuleNotFoundError:
 from graphql.execution.executors.asyncio import AsyncioExecutor
 from aiohttp_graphql import GraphQLView
 from aiohttp import web
+
+import markdown
 
 
 # # graphql + aiohttp
@@ -235,38 +237,71 @@ class Book:
 # 
 # ```
 
+# In[9]:
+
+
+template = """
+# Welcome to the example page
+
+## Rest routes
+
+### Authors
+
+For an individual author:
+
+[/rest/author/{{id}}](/rest/author/1)
+
+To query authors:
+
+[/rest/authors?age={{number}}&limit={{another_number}}](/rest/authors?limit=3)
+
+The following can be passed as query parameters to authors:
+
+    limit: The amount of results you wish to be limited to
+    age: The age of the author, as an integer
+    first_name: The first name of the author as a string
+    last_name: The last name of the author as a string
+    no_books: Removes the {{books}} field from the resulting authors
+
+### Books
+
+For an individual book:
+
+[/rest/book/{{id}}](/rest/book/1)
+
+To query books:
+
+[/rest/books?author_id={{number}}&limit={{another_number}}](/rest/books?limit=3)
+
+The following can be passed as query parameters to books:
+
+    limit: The amount of results you wish to be limiited to
+    title: The title of the book
+    published: The date published in the following format %m/%d/%Y
+    author_id: The uuid of the author in the database
+
+"""
+
+html = markdown.markdown(template)
+
+
 # In[3]:
 
 
 #@routes.get('/')
-async def index_view(request):
+async def index(request):
     """Redirect to greet route."""
     # this logging sexiness is a talk for another time
     # but it's a thin wrapper around eliot.start_action
     with log_request(request):
-        
-        url = request.app.router['greet'].url_for(name='you')
-        
-        with log_action('redirect', to_url=str(url)):
-            
-            return web.HTTPFound(url)
 
-
-#@routes.get('/greet/{name}', name='greet')
-async def greet_view(request):
-    """Say hello."""
-    with log_request(request):
-        
-        name = request.match_info['name']
-        
         response = web.Response(
-                text=f'<html><h2>Hello {name}!</h2><html>',
-                content_type='Content-Type: text/html'
-            )
-
-        with log_response(response):
-            
-            return response
+                 text=html,
+                 content_type='Content-Type: text/html'
+             )
+        
+    with log_response(response):
+        return response
 
 
 # # Rest views
@@ -281,9 +316,9 @@ async def greet_view(request):
 # 
 # Or based on url query parameters:
 # 
-# `/rest/authors?age=42&no_books=true&first_name=Sam&last_name=Jones&limit=5`
+# `/rest/authors?age=42&no_books=true`
 # 
-# `/rest/books?author_id=3&limit=5?title="More Cowbell"&published="12/13/1996"`
+# `/rest/books?author_id=3&limit=5`
 
 # In[4]:
 
@@ -385,9 +420,9 @@ async def books(request):
 
         response = web.json_response(books)
 
-        with log_response(response):
+    with log_response(response):
 
-            return response
+        return response
 
 
 # In[5]:
@@ -424,9 +459,9 @@ async def authors(request):
 
         response = web.json_response(authors)
 
-        with log_response(response):
+    with log_response(response):
 
-            return response
+        return response
 
 
 # ## The GraphQL way
@@ -634,8 +669,7 @@ def app_factory(*args, db=':memory:', logfile='log.json', **config_params):
     app.on_startup.append(configure_graphql)
 
     # example routes
-    app.router.add_get('/', index_view)
-    app.router.add_get('/greet/{name}', greet_view, name='greet')
+    app.router.add_get('/', index)
     
     # rest routes
     app.router.add_get('/rest/author/{id}', author)

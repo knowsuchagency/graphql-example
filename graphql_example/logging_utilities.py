@@ -15,7 +15,7 @@ def log_action(action_type: str, **kwargs):
 def log_request(request: web.Request, **kwargs):
     """A logging shortcut for when we receive requests."""
     with log_action(
-        'processing request',
+        'receiving request',
 
         method=request.method,
         resource=str(request.rel_url),
