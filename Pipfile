@@ -15,6 +15,7 @@ graphene = "*"
 aiohttp-mako = "*"
 mimesis = "*"
 aiohttp-graphql = "*"
+markdown = "*"
 
 
 [dev-packages]
