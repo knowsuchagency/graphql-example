@@ -74,3 +74,6 @@ public/
 **/.ipynb_checkpoints/
 
 **.sqlite
+
+# html output from jupyter
+**.html
