@@ -11908,7 +11908,16 @@ a.anchor-link {
 <h1 id="graphql-+-aiohttp">graphql + aiohttp<a class="anchor-link" href="#graphql-+-aiohttp">&#182;</a></h1>
 </div>
 </div>
-</div></section><section>
+</div><div class="fragment">
+<div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p><a href="http://nbviewer.jupyter.org/format/slides/github/knowsuchagency/graphql-example/blob/master/graphql_example/graphql_example.ipynb?flush_cache=true#/"><strong>slideshow</strong></a></p>
+
+</div>
+</div>
+</div></div></section><section>
 <div class="cell border-box-sizing text_cell rendered"><div class="prompt input_prompt">
 </div>
 <div class="inner_cell">
@@ -12178,34 +12187,19 @@ using decorators or explicitly i.e.</p>
 <div class="inner_cell">
     <div class="input_area">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#@routes.get(&#39;/&#39;)</span>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">index_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+<span class="k">async</span> <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Redirect to greet route.&quot;&quot;&quot;</span>
     <span class="c1"># this logging sexiness is a talk for another time</span>
     <span class="c1"># but it&#39;s a thin wrapper around eliot.start_action</span>
     <span class="k">with</span> <span class="n">log_request</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-        
-        <span class="n">url</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="p">[</span><span class="s1">&#39;greet&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">url_for</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;you&#39;</span><span class="p">)</span>
-        
-        <span class="k">with</span> <span class="n">log_action</span><span class="p">(</span><span class="s1">&#39;redirect&#39;</span><span class="p">,</span> <span class="n">to_url</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">url</span><span class="p">)):</span>
-            
-            <span class="k">return</span> <span class="n">web</span><span class="o">.</span><span class="n">HTTPFound</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
 
-
-<span class="c1">#@routes.get(&#39;/greet/{name}&#39;, name=&#39;greet&#39;)</span>
-<span class="k">async</span> <span class="k">def</span> <span class="nf">greet_view</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Say hello.&quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="n">log_request</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
-        
-        <span class="n">name</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">match_info</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
-        
         <span class="n">response</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">Response</span><span class="p">(</span>
-                <span class="n">text</span><span class="o">=</span><span class="n">f</span><span class="s1">&#39;&lt;html&gt;&lt;h2&gt;Hello </span><span class="si">{name}</span><span class="s1">!&lt;/h2&gt;&lt;html&gt;&#39;</span><span class="p">,</span>
-                <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;Content-Type: text/html&#39;</span>
-            <span class="p">)</span>
-
-        <span class="k">with</span> <span class="n">log_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
-            
-            <span class="k">return</span> <span class="n">response</span>
+                 <span class="n">text</span><span class="o">=</span><span class="n">html</span><span class="p">,</span>
+                 <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;Content-Type: text/html&#39;</span>
+             <span class="p">)</span>
+        
+    <span class="k">with</span> <span class="n">log_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">response</span>
 </pre></div>
 
 </div>
@@ -12344,9 +12338,9 @@ using decorators or explicitly i.e.</p>
 
         <span class="n">response</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">json_response</span><span class="p">(</span><span class="n">books</span><span class="p">)</span>
 
-        <span class="k">with</span> <span class="n">log_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">log_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
 
-            <span class="k">return</span> <span class="n">response</span>
+        <span class="k">return</span> <span class="n">response</span>
 </pre></div>
 
 </div>
@@ -12390,9 +12384,9 @@ using decorators or explicitly i.e.</p>
 
         <span class="n">response</span> <span class="o">=</span> <span class="n">web</span><span class="o">.</span><span class="n">json_response</span><span class="p">(</span><span class="n">authors</span><span class="p">)</span>
 
-        <span class="k">with</span> <span class="n">log_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">log_response</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
 
-            <span class="k">return</span> <span class="n">response</span>
+        <span class="k">return</span> <span class="n">response</span>
 </pre></div>
 
 </div>
@@ -12625,8 +12619,7 @@ using decorators or explicitly i.e.</p>
     <span class="n">app</span><span class="o">.</span><span class="n">on_startup</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">configure_graphql</span><span class="p">)</span>
 
     <span class="c1"># example routes</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">index_view</span><span class="p">)</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/greet/</span><span class="si">{name}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">greet_view</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;greet&#39;</span><span class="p">)</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
     
     <span class="c1"># rest routes</span>
     <span class="n">app</span><span class="o">.</span><span class="n">router</span><span class="o">.</span><span class="n">add_get</span><span class="p">(</span><span class="s1">&#39;/rest/author/</span><span class="si">{id}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">author</span><span class="p">)</span>

@@ -139,7 +139,7 @@ class Book:
 # ```
 
 # However, maybe we're unconcerned with the books field, for any of the authors for this particular query,
-# and all that extra information seems to be slowing down the rate at which the page loads, either because of unnecessary database calls on the server side, or the extra time it takes for the client to process the json returned from the server.
+# and all that extra information seems to be slowing down our page load.
 # 
 # To mitigate this problem, maybe we add another filter to the authors endpoint to remove that field from the result like so `/rest/authors?age=34&no_books=true`
 # 
@@ -155,10 +155,13 @@ class Book:
 # ]
 # ```
 
-# We still have some things to consider...
+# But...
 # 
-# * What happens if we type `/rest/authors?age=34&no_books=True` or `/rest/authors?age=34&no_books=t`? In general, how do we define and interpret the arguments passed as query params and how to we enforce that contract with our clients and give them helpful feedback when mistakes are made?
-# * What happens if we have a similar query to the one above, where we ARE interested in the book information for a given author, but only a subset of that data, such as `title`, but not `published`? Seems hardly worth creating another filter. We'll probably just suck it up and retrieve all the data in the book field and ignore what isn't needed on the client side.
+# * What happens if we type `..?no_books=True`, `..?no_books=TRUE`, or `..?no_books=t`? 
+# 
+# In general, how do we define and interpret the arguments passed as query params on the server side and how to we enforce that contract with our clients and give them helpful feedback when mistakes are made?
+# 
+# * What happens if we have a similar query to the one above, where we ARE interested in the book information for a given author, but only a subset of that data, such as `book.title`, but not `book.published`? Seems hardly worth creating another filter. We'll probably just suck it up and retrieve all the data in the book field and ignore what isn't needed on the client side.
 
 # ### General considerations with REST
 # 
