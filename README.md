@@ -292,7 +292,6 @@ html = markdown.markdown(template)
 ```python
 #@routes.get('/')
 async def index(request):
-    """Redirect to greet route."""
     # this logging sexiness is a talk for another time
     # but it's a thin wrapper around eliot.start_action
     with log_request(request):
@@ -761,15 +760,3 @@ if __name__ == '__main__':
     web.run_app(app, host='127.0.0.1', port=8080)
 
 ```
-
-    creating tables
-    tables created
-    seeding database
-    database seeded
-    ======== Running on http://127.0.0.1:8080 ========
-    (Press CTRL+C to quit)
-    dropping tables
-    tables dropped
-    closing database connection
-    database connection closed
-

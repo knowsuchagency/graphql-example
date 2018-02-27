@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[8]:
+# In[ ]:
 
 
 # package imports
@@ -91,7 +91,7 @@ import markdown
 # 
 # 
 
-# In[2]:
+# In[ ]:
 
 
 class Author:
@@ -242,7 +242,7 @@ class Book:
 # 
 # ```
 
-# In[9]:
+# In[ ]:
 
 
 template = """
@@ -293,12 +293,11 @@ The following can be passed as query parameters to books:
 html = markdown.markdown(template)
 
 
-# In[3]:
+# In[ ]:
 
 
 #@routes.get('/')
 async def index(request):
-    """Redirect to greet route."""
     # this logging sexiness is a talk for another time
     # but it's a thin wrapper around eliot.start_action
     with log_request(request):
@@ -372,7 +371,7 @@ async def author(request):
         return response
 
 
-# In[4]:
+# In[ ]:
 
 
 async def book(request):
@@ -435,7 +434,7 @@ async def books(request):
         return response
 
 
-# In[5]:
+# In[ ]:
 
 
 async def authors(request):
@@ -581,7 +580,7 @@ class Book(g.ObjectType):
 # 
 # Remember that the root node of our graph is an object with the name `query`.
 
-# In[6]:
+# In[ ]:
 
 
 async def configure_graphql(app):
@@ -726,7 +725,7 @@ async def configure_graphql(app):
     )
 
 
-# In[7]:
+# In[ ]:
 
 
 def app_factory(*args, db=':memory:', logfile='log.json', **config_params):
