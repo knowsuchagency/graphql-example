@@ -134,10 +134,9 @@ We may get a structure like the following
 ]
 ```
 
-However, maybe we're unconcerned with the books field, for any of the authors for this particular query,
-and all that extra information seems to be slowing down our page load.
+However, maybe we're unconcerned with the `books` field and all that extra information seems to be slowing down our page load.
 
-To mitigate this problem, maybe we add another filter to the authors endpoint to remove that field from the result like so `/rest/authors?age=34&no_books=true`
+To mitigate this problem, maybe we add another filter to the authors endpoint i.e. `/rest/authors?age=34&no_books=true`
 
 Great, so now we get something like the following
 
@@ -155,16 +154,19 @@ But...
 
 * What happens if we type `..?no_books=True`, `..?no_books=TRUE`, or `..?no_books=t`? 
 
-In general, how do we define and interpret the arguments passed as query params on the server side and how to we enforce that contract with our clients and give them helpful feedback when mistakes are made?
+In general, how do we define and interpret the arguments passed as query params on the server side?
 
-* What happens if we have a similar query to the one above, where we ARE interested in the book information for a given author, but only a subset of that data, such as `book.title`, but not `book.published`? Seems hardly worth creating another filter. We'll probably just suck it up and retrieve all the data in the book field and ignore what isn't needed on the client side.
+Furthermore, how to we enforce that contract with our clients and give them helpful feedback when mistakes are made?
+
+Also, what happens if we have a similar query to the one above, where we ARE interested in the `book` field for a given author, but only a subset of that data, such as `book.title` excluding all other data in the `book` field? 
+
+Seems hardly worth creating another filter. We'll probably just suck it up and retrieve all the data in the book field and ignore what isn't needed on the client side.
 
 ### General considerations with REST
 
 * How do we handle different data types and serialization between the client server for complex data types?
 * How do we ensure that our rest api documenation is up-to-date? How do we ensure it's documented at all?
-* How do we communicate to the client what data can be retrieved from the server a la HATEAOS? Again, this is something that's often not implented. We leave it up to backend engineers to document their API which ... yeah.
-* Under-fetching, Over-fetching, n+1
+* How do we communicate to the client what data can be retrieved from the server?
 
 ### Solutions have been proposed
 
@@ -192,11 +194,9 @@ But really, GraphQL is first-and-foremost a declarative language specification f
 
 And, despite the snark, the buzz is important. GraphQL is created and backed by Facebook, and there is a rapidly growing community and ecosystem of libraries that make GraphQL compelling over other standards like JSON-API, Falcor, or OData.
 
-GraphQL is a way of maintaining the contract between client and server as to what data can be sent or received and in what form.
+A GraphQL-compliant server will be able to tell what information can be exchanged with the client and how, in a way that is more expressive and provides more guarantees of correctness than REST.
 
 Still, it's up to the backend engineer to correctly implement the spec, so it's not magic.
-
-Assuming the client is guaranteed to use GraphQL and the server is spec-compliant, however, there are several benefits beyond the server being self-documenting.
 
 On the server-side, having the client describe the specific shape of data it wants can allow the server to make smarter decisions as to how to serve that data i.e. re-shaping SQL expressions or batching database queries.
 
@@ -324,6 +324,49 @@ Or based on url query parameters:
 
 
 ```python
+async def author(request):
+    """Return a single author for a given id."""
+
+    connection = request.app['connection']
+
+    with log_request(request):
+        try:
+            
+            # when using co-routines, it's important that each co-routine be non-blocking
+            # meaning no individual action will take a long amount of time, preventing
+            # the event loop from letting other co-routines execute
+            
+            # since our database query may not immediately return, we run it
+            # in an "executor" (a thread pool) and await for it to finish
+            
+            # functools.partial allows us to create a callable that
+            # bundles necessary positional and keyword arguments with it
+            # in a way that is pickle-able https://docs.python.org/3/library/pickle.html
+            
+            # i.e. `print('hello', end=' ') == partial(print, 'hello', end= ' ')()`
+                        
+            db_query = partial(
+                fetch_authors, connection, id=int(request.match_info['id']))
+            
+            # * unpacks an arbitrary number of tuples (see pep-3132)
+
+            author, *_ = await request.loop.run_in_executor(None, db_query)
+
+        except ValueError:
+            author = None
+
+        if not author:
+            log_message('Author not found', id=request.match_info['id'])
+            raise web.HTTPNotFound
+
+    response = web.json_response(author)
+
+    with log_response(response):
+        return response
+```
+
+
+```python
 async def book(request):
     """Return a single book for a given id."""
 
@@ -345,47 +388,6 @@ async def book(request):
             raise web.HTTPNotFound
 
     response = web.json_response(book)
-
-    with log_response(response):
-        return response
-```
-
-
-```python
-async def author(request):
-    """Return a single author for a given id."""
-
-    connection = request.app['connection']
-
-    with log_request(request):
-        try:
-            
-            # when using co-routines, it's important that each co-routine be non-blocking
-            # meaning no individual action will take a long amount of time, preventing
-            # the event loop from letting other co-routines execute
-            
-            # since our database query may not immediately return, we run it
-            # in an "executor" (a thread pool) and await for it to finish
-            
-            # functools.partial allows us to create a callable that
-            # bundles necessary positional and keyword arguments with it
-            # print('hello', end=' ') == partial(print, 'hello', end= ' ')()
-                        
-            db_query = partial(
-                fetch_authors, connection, id=int(request.match_info['id']))
-            
-            # * unpacks an arbitrary number of tuples (see pep-3132)
-
-            author, *_ = await request.loop.run_in_executor(None, db_query)
-
-        except ValueError:
-            author = None
-
-        if not author:
-            log_message('Author not found', id=request.match_info['id'])
-            raise web.HTTPNotFound
-
-    response = web.json_response(author)
 
     with log_response(response):
         return response
@@ -438,6 +440,7 @@ async def authors(request):
         last_name = request.query.get('last_name')
         age = None or int(request.query.get('age', 0))
         limit = int(request.query.get('limit', 0))
+        
         # client may not want/need book information
         no_books = str(request.query.get('no_books','')).lower().startswith('t')
 
@@ -462,11 +465,75 @@ async def authors(request):
         return response
 ```
 
-## The GraphQL way
+# GraphQL
+
+So before, we saw an example of how you might implement a REST api where each resource i.e. 
+
+    /rest/author/{id}
+    /rest/authors? ...
+    
+    
+GraphQL is conceptually very different. The idea is that instead mapping your URL's to your data
+and implenting queries and mutations through a combination of URL query params and HTTP verbs, your
+entire API is exposed via a single URL.
+
+Requests to this url will have a GraphQL query either in the body of the HTTP request, or in the `query`
+url parameter. This GraphQL query will tell the server what data to fetch or change.
+
+The GraphQL server, in turn, exposes the data as a vertex-edge or node-link graph where the root node
+has a special name, `query` which is left out of graphql queries as its' implicitly there, in the
+same way `https://google.com` implicitly has the root DNS node contained `https://google.com.`
+
+Each resource we create, such as an `author` (objects in GraphQL parlance) will have an associated resolver function that exposes that object on the graph.
+
+So concretely, what does this look like in-practice? 
+
+Well, on the client side hitting `http://localhost:8080/rest/authors?limit=3&no_books=true` may return something like
+
+    [
+      {
+        "id": 1,
+        "first_name": "Willene",
+        "last_name": "Whitaker",
+        "age": 26
+      },
+      {
+        "id": 2,
+        "first_name": "Cedric",
+        "last_name": "Williams",
+        "age": 52
+      },
+      {
+        "id": 3,
+        "first_name": "Kaila",
+        "last_name": "Snider",
+        "age": 33
+      }
+    ]
+    
+
+If we wanted to get the same information using graphql, we'd start by writing our query.
+
+    {
+      authors(limit: 3) {
+        id
+        first_name
+        last_name
+        age
+      }
+    }
+    
+In a scenario where we're using the excellent [httpie](https://httpie.org/) client and we have the above query bound to the `query` variable, we'd retreive the information as such:
+
+    http :8080/graphql "query=$query"
+
+## Writing GraphQL server code
 
 Since we're using [graphene](http://graphene-python.org/), we'll first need to use the library to create a schema describing our data.
 
 This schema will then tell the library how to implement the GraphQL-compliant endpoint view.
+
+## The Schema
 
 
 ```python
@@ -496,6 +563,13 @@ class Book(g.ObjectType):
     
 ```
 
+# Describing the Graph
+
+Once we've defined our schema, we need to expose that information by adding our **objects** as **fields** on the graph
+and writing **resolver functions** for those fields that describe out to fetch the actual data we want.
+
+Remember that the root node of our graph is an object with the name `query`.
+
 
 ```python
 async def configure_graphql(app):
@@ -518,7 +592,7 @@ async def configure_graphql(app):
             # the following will be passed as named
             # arguments to the resolver function.
             # Don't ask why; it took me forever to
-            # figure it out. Depite its functionality,
+            # figure it out. Despite its functionality,
             # graphene's design and especially its
             # documentation leave a lot to be desired
 
