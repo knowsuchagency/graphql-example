@@ -600,8 +600,7 @@ async def configure_graphql(app):
             # arguments to the resolver function.
             # Don't ask why; it took me forever to
             # figure it out. Despite its functionality,
-            # graphene's design and especially its
-            # documentation leave a lot to be desired
+            # graphene's documentation leaves a lot to be desired
 
             id=g.Int(),
             first_name=g.String(),
