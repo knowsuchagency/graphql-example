@@ -202,11 +202,7 @@ On the server-side, having the client describe the specific shape of data it wan
 
 On the client-side, it's great just to be able to introspect what's available and have a well-defined way of communicating with the server. Since the server will communicate what type of data can be sent/received, the client doesn't need to worry that the api documentation isn't up-to-date or doesn't exist.
 
-# Server
-
----
-
-## Show me the code!
+# Show me the code!
 
 
 We're going to implement a backend server that has a couple RESTful endpoints and one written in GraphQL to demonstrate our earlier points.
@@ -307,7 +303,7 @@ async def index(request):
 
 # Rest views
 
-These def the logic for the restful routes we'll create on our application i.e.
+These define the logic for the restful routes we'll create on our application i.e.
 
 For a single resource:
 
